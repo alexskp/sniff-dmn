@@ -22,15 +22,15 @@ int server(int client_socket, bst_tree *tree, unsigned int iface)
             struct sockaddr_in addr;
             bst_tree *current_tree = tree;
 
-
             while (current_tree)
             {
                 list_node *list = NULL;
                 char ifname[IF_NAMESIZE];
 
                 if_indextoname(current_tree->iface, ifname);
-
-                sprintf(buff, "\ninteface: %s\n-------------------------", ifname);
+                sprintf(buff, "\ninteface: %s", ifname);
+                write(client_socket, buff, BUFF_SIZE);
+                sprintf(buff, " IP:\t\tpacket(s)\n-------------------------");
                 write(client_socket, buff, BUFF_SIZE);
 
                 if (current_tree->root != NULL)
@@ -73,12 +73,10 @@ int server(int client_socket, bst_tree *tree, unsigned int iface)
             if (current_tree->root != NULL)
                 bst_to_list(&list, current_tree->root);
 
-            sprintf(buff, "\n IP:\t\tpacket(s)\n");
-            write(client_socket, buff, BUFF_SIZE);
-
             if_indextoname(current_tree->iface, ifname);
-
-            sprintf(buff, "inteface: %s\n-------------------------", ifname);
+            sprintf(buff, "\ninteface: %s", ifname);
+            write(client_socket, buff, BUFF_SIZE);
+            sprintf(buff, " IP:\t\tpacket(s)\n-------------------------");
             write(client_socket, buff, BUFF_SIZE);
 
             while (list)
