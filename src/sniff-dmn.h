@@ -114,5 +114,7 @@ void print_list(list_node *head);
 int check_wireless(const char* ifname);         // check if interface is wireless for setting wired interface as default
 unsigned int set_default_interface(void);
 void list_devices(void);
+void print_stat(const char *path, const char *iface);
+void print_all_stat(const char *path);
 
 #endif

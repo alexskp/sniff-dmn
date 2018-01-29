@@ -17,24 +17,29 @@ int server(int client_socket, bst_tree *tree, unsigned int iface)
             write(client_socket, buff, BUFF_SIZE);
             return 1;
         }
+        if (!strcmp("check", buff))
+        {
+            strcpy(buff, "end");
+            write(client_socket, buff, BUFF_SIZE);
+            return 0;
+        }
         else if (!strcmp("stat", buff))
         {
             struct sockaddr_in addr;
-            bst_tree *current_tree = tree;
 
-            while (current_tree)
+            while (tree)
             {
                 list_node *list = NULL;
                 char ifname[IF_NAMESIZE];
 
-                if_indextoname(current_tree->iface, ifname);
+                if_indextoname(tree->iface, ifname);
                 sprintf(buff, "\ninteface: %s", ifname);
                 write(client_socket, buff, BUFF_SIZE);
                 sprintf(buff, " IP:\t\tpacket(s)\n-------------------------");
                 write(client_socket, buff, BUFF_SIZE);
 
-                if (current_tree->root != NULL)
-                    bst_to_list(&list, current_tree->root);
+                if (tree->root != NULL)
+                    bst_to_list(&list, tree->root);
 
                 while (list)
                 {
@@ -43,7 +48,7 @@ int server(int client_socket, bst_tree *tree, unsigned int iface)
                     write(client_socket, buff, BUFF_SIZE);
                     list = list->next;
                 }
-                current_tree = current_tree->next;
+                tree = tree->next;
                 list_free(&list);
             }
             strcpy(buff, "end");
@@ -54,7 +59,6 @@ int server(int client_socket, bst_tree *tree, unsigned int iface)
         {
             strtok(buff, sep);
             char *iface = strtok(NULL, sep);
-            char ifname[IF_NAMESIZE];
             struct sockaddr_in addr;
             list_node *list = NULL;
 
@@ -68,13 +72,20 @@ int server(int client_socket, bst_tree *tree, unsigned int iface)
                 return 0;
             }
 
-            bst_tree *current_tree = bst_get_tree(tree, interface);
+            bst_tree *current_tree;
+            if(!(current_tree = bst_get_tree(tree, interface)))
+            {
+                strcpy(buff, "There is no stat for that interface");
+                write(client_socket, buff, BUFF_SIZE);
+                strcpy(buff, "end");
+                write(client_socket, buff, BUFF_SIZE);
+                return 0;
+            }
 
             if (current_tree->root != NULL)
                 bst_to_list(&list, current_tree->root);
 
-            if_indextoname(current_tree->iface, ifname);
-            sprintf(buff, "\ninteface: %s", ifname);
+            sprintf(buff, "\ninteface: %s", iface);
             write(client_socket, buff, BUFF_SIZE);
             sprintf(buff, " IP:\t\tpacket(s)\n-------------------------");
             write(client_socket, buff, BUFF_SIZE);
@@ -126,7 +137,7 @@ void sniffer(unsigned int iface)
 
     sock_raw = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_IP));
     fcntl(sock_raw, F_SETFL, O_NONBLOCK);
-    if(sock_raw < 0)
+    if (sock_raw < 0)
         exit(EXIT_FAILURE);
 
     /* Clear structure */

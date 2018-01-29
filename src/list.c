@@ -40,9 +40,11 @@ void list_free(list_node **head)
 
 void print_list(list_node *head)
 {
+    struct sockaddr_in addr;
     while (head)
     {
-        printf("%u  %llu\n", head->ip, head->count);
+        addr.sin_addr.s_addr = head->ip;
+        printf("%-15s ----- %llu\n", inet_ntoa(addr.sin_addr), head->count);
         head = head->next;
     }
 }

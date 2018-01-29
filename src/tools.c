@@ -72,3 +72,70 @@ void list_devices()
 	}
 	freeifaddrs(addrs);
 }
+
+void print_stat(const char *path, const char *iface)
+{
+	bst_tree *tree;
+
+	if (!(tree = bst_fromfile(path)))
+	{
+		printf("Can't open stat file\n");
+		return;
+	}
+
+	list_node *list = NULL;
+	unsigned int interface;
+
+	if (!(interface = if_nametoindex(iface)))
+	{
+		printf("Invalid interface\n");
+		return;
+	}
+
+	bst_tree *current_tree;
+	if (!(current_tree = bst_get_tree(tree, interface)))
+	{
+		printf("There is no stat for that interface\n");
+		return;
+	}
+
+	bst_to_list(&list, current_tree->root);
+
+	printf("\ninteface: %s\n", iface);
+	printf(" IP:\t\tpacket(s)\n-------------------------\n");
+
+	print_list(list);
+
+	list_free(&list);
+	bst_list_free(&tree);
+}
+
+void print_all_stat(const char *path)
+{
+	bst_tree *tree;
+
+	if (!(tree = bst_fromfile(path)))
+	{
+		printf("Can't open stat file\n");
+		return;
+	}
+
+	bst_tree *current_tree = tree;
+	while (current_tree)
+	{
+		list_node *list = NULL;
+		char ifname[IF_NAMESIZE];
+
+		if_indextoname(current_tree->iface, ifname);
+		printf("\ninteface: %s\n", ifname);
+		printf(" IP:\t\tpacket(s)\n-------------------------\n");
+
+		bst_to_list(&list, current_tree->root);
+
+		print_list(list);
+
+		current_tree = current_tree->next;
+		list_free(&list);
+	}
+	bst_list_free(&tree);
+}

@@ -36,6 +36,11 @@ void cli(void)
             if (!daemon_status)
             {
                 start_sniffer_dmn(iface);
+                if (!request_to_daemon("check"))
+                {
+                    printf("Error! Daemon can't be started. Try to start program as root\n");
+                    exit(EXIT_FAILURE);
+                }
                 daemon_status = DAEMON_ON;
                 char ifname[IF_NAMESIZE];
                 if_indextoname(iface, ifname);
@@ -56,26 +61,27 @@ void cli(void)
         }
         else if (word1 && word2 && word3 && !strcmp("show", word1) && !strcmp("count", word3))
         {
-            char ip[20];
+            char ip[IF_NAMESIZE];
             strcpy(ip, word2);
             strcpy(buff, "show ");
             strcat(buff, ip);
             if (!request_to_daemon(buff))
                 printf("Sniffer is off\n");
+
         }
         else if (word1 && word2 && !word3 && !strcmp("stat", word1))
         {
-            char if_name[20];
+            char if_name[IF_NAMESIZE];
             strcpy(if_name, word2);
             strcpy(buff, "stat ");
             strcat(buff, if_name);
             if (!request_to_daemon(buff))
-                printf("Sniffer is off\n");
+                print_stat(STAT_FILE, if_name);
         }
         else if (word1 && !word2 && !word3 && !strcmp("stat", word1))
         {
             if (!request_to_daemon("stat"))
-                printf("Sniffer is off\n");
+                print_all_stat(STAT_FILE);
         }
         else if (word1 && word2 && word3 && !strcmp("select", word1) && !strcmp("iface", word2))
         {
@@ -113,6 +119,11 @@ int request_to_daemon(const char *msg)
     struct sockaddr_un name;
     /* Create the socket.  */
     socket_fd = socket(PF_UNIX, SOCK_STREAM, 0);
+    if (socket_fd < 0)
+    {
+        printf("socket error");
+        exit(EXIT_FAILURE);
+    }
     /* Store the server’s name in the socket address.  */
     name.sun_family = AF_UNIX;
     strcpy(name.sun_path, SOCKET_NAME);
@@ -122,11 +133,10 @@ int request_to_daemon(const char *msg)
     char buff[BUFF_SIZE];
 	strcpy(buff, msg);
 
-	write(socket_fd, buff, BUFF_SIZE);
-
 	if (status == 0)
 	{
-        while(1)
+    	write(socket_fd, buff, BUFF_SIZE);
+        while (1)
         {
             read(socket_fd, buff, BUFF_SIZE);
             if (!strcmp(buff, "end"))
@@ -138,8 +148,8 @@ int request_to_daemon(const char *msg)
 	}
     else
     {
-        return 0;
         close(socket_fd);
+        return 0;
     }
 }
 
