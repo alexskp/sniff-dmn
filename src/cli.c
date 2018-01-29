@@ -8,6 +8,9 @@
 #define ANSI_COLOR_CYAN    "\x1b[36m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
 
+#define DELAY           100000
+
+
 void cli(void)
 {
     char buff[BUFF_SIZE];
@@ -36,6 +39,9 @@ void cli(void)
             if (!daemon_status)
             {
                 start_sniffer_dmn(iface);
+                // wait until daemon starts
+                usleep(DELAY);
+                // check if daemon works
                 if (!request_to_daemon("check"))
                 {
                     printf("Error! Daemon can't be started. Try to start program as root\n");
