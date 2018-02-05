@@ -137,6 +137,7 @@ int request_to_daemon(const char *msg)
     int status = connect(socket_fd, (struct sockaddr *)&name, SUN_LEN (&name));
 
     char buff[BUFF_SIZE];
+    memset(&buff, 0, BUFF_SIZE);
 	strcpy(buff, msg);
 
 	if (status == 0)

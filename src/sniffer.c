@@ -41,12 +41,14 @@ int server(int client_socket, bst_tree *tree, unsigned int iface)
                 if (tree->root != NULL)
                     bst_to_list(&list, tree->root);
 
-                while (list)
+                list_node *current_node = list;
+
+                while (current_node)
                 {
-                    addr.sin_addr.s_addr = list->ip;
-                    sprintf(buff, "%-15s ----- %llu", inet_ntoa(addr.sin_addr), list->count);
+                    addr.sin_addr.s_addr = current_node->ip;
+                    sprintf(buff, "%-15s ----- %llu", inet_ntoa(addr.sin_addr), current_node->count);
                     write(client_socket, buff, BUFF_SIZE);
-                    list = list->next;
+                    current_node = current_node->next;
                 }
                 tree = tree->next;
                 list_free(&list);
@@ -58,7 +60,10 @@ int server(int client_socket, bst_tree *tree, unsigned int iface)
         else if (!strncmp("stat", buff, 4))
         {
             strtok(buff, sep);
-            char *iface = strtok(NULL, sep);
+            char *ifacetok = strtok(NULL, sep);
+            char iface[IF_NAMESIZE];
+            strcpy(iface, ifacetok);
+
             struct sockaddr_in addr;
             list_node *list = NULL;
 
@@ -85,17 +90,19 @@ int server(int client_socket, bst_tree *tree, unsigned int iface)
             if (current_tree->root != NULL)
                 bst_to_list(&list, current_tree->root);
 
+            list_node *current_node = list;
+
             sprintf(buff, "\ninteface: %s", iface);
             write(client_socket, buff, BUFF_SIZE);
             sprintf(buff, " IP:\t\tpacket(s)\n-------------------------");
             write(client_socket, buff, BUFF_SIZE);
 
-            while (list)
+            while (current_node)
             {
-                addr.sin_addr.s_addr = list->ip;
-                sprintf(buff, "%-15s ----- %llu", inet_ntoa(addr.sin_addr), list->count);
+                addr.sin_addr.s_addr = current_node->ip;
+                sprintf(buff, "%-15s ----- %llu", inet_ntoa(addr.sin_addr), current_node->count);
                 write(client_socket, buff, BUFF_SIZE);
-                list = list->next;
+                current_node = current_node->next;
             }
             list_free(&list);
 
@@ -162,8 +169,6 @@ void sniffer(unsigned int iface)
 	struct             sockaddr_un name;
 	int                client_sent_quit_message = 0;
 
-    struct sockaddr_un client_name;
-    socklen_t          client_name_len;
     int                client_socket_fd;
 
     unlink(SOCKET_NAME);
@@ -190,17 +195,20 @@ void sniffer(unsigned int iface)
         }
 
         /* Accept a connection.  */
-		client_socket_fd = accept(socket_fd, (struct sockaddr *)&client_name, &client_name_len);
+		client_socket_fd = accept(socket_fd, NULL, NULL);
 		/* Handle the connection.  */
         if (client_socket_fd > 0)
         {
             client_sent_quit_message = server(client_socket_fd, tree_list, iface);
+            /* Close connection.  */
+    		close(client_socket_fd);
         }
-		/* Close connection.  */
-		close(client_socket_fd);
 	} while (!client_sent_quit_message);
 
     bst_to_file(tree_list, STAT_FILE);
+
+    bst_list_free(&tree_list);
+    free(buffer);
 
     close(socket_fd);
     unlink(SOCKET_NAME);

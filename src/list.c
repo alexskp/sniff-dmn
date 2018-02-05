@@ -14,7 +14,7 @@ list_node *get_last_node(list_node *head)
 list_node *add_node(list_node **head, unsigned int ip, unsigned long long count)
 {
     list_node *last_node = get_last_node((*head));
-    list_node *new_node = (list_node *)malloc(sizeof(bst_tree));
+    list_node *new_node = (list_node *)malloc(sizeof(list_node));
     new_node->ip = ip;
     new_node->count = count;
     new_node->next = NULL;
